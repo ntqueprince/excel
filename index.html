@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Analysis Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-table"></i> Excel Data Analysis Tool</h1>
+            <p>Upload, analyze, and manipulate your Excel data with powerful sorting, filtering, and visualization features</p>
+        </div>
+
+        <div class="input-section">
+            <div class="input-tabs">
+                <button class="tab-button active" onclick="switchTab('upload')">
+                    <i class="fas fa-upload"></i> Upload File
+                </button>
+                <button class="tab-button" onclick="switchTab('paste')">
+                    <i class="fas fa-paste"></i> Paste Data
+                </button>
+            </div>
+
+            <div id="upload-tab" class="tab-content active">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()" 
+                     ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">
+                        <i class="fas fa-file-excel"></i>
+                    </div>
+                    <div class="upload-text">Click to upload or drag & drop your Excel file</div>
+                    <div class="upload-subtext">Supports .xlsx, .xls, and .csv files</div>
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+                </div>
+            </div>
+
+            <div id="paste-tab" class="tab-content">
+                <textarea id="pasteArea" class="paste-area" placeholder="Paste your Excel data here... 
+Each row should be on a new line, with columns separated by tabs or commas.
+
+Example:
+Name	CSAT	DSAT	Score	Amount
+John	95%	5%	87	1250.50
+Jane	82%	18%	76	980.25"></textarea>
+                <button class="btn btn-primary" onclick="processData()" style="margin-top: 15px;">
+                    <i class="fas fa-cogs"></i> Process Data
+                </button>
+            </div>
+        </div>
+
+        <div id="controlsSection" class="controls-section">
+            <div class="batch-actions" id="batchActions">
+                <span>Selected columns: <strong id="selectedCount">0</strong></span>
+            </div>
+
+            <div class="controls-grid">
+                <div class="control-group">
+                    <button class="btn btn-primary" onclick="captureTable()">
+                        <i class="fas fa-camera"></i> Screenshot
+                    </button>
+                </div>
+                <div class="control-group">
+                    <button class="btn btn-success" onclick="exportToExcel()">
+                        <i class="fas fa-download"></i> Download Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+            <div>Processing your data...</div>
+        </div>
+
+        <div id="tableContainer" class="table-container">
+            <div class="stats">
+                <div>
+                    Rows: <strong id="rowCount">0</strong> | 
+                    Columns: <strong id="columnCount">0</strong>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="dataTable" class="data-table">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
