@@ -34,6 +34,16 @@ body {
     opacity: 0.9;
 }
 
+.rainbow-text {
+    background-image: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+    font-size: 1.5rem; /* Increased font size */
+    margin-top: -20px; /* Adjusted to bring it closer to the main heading */
+    display: inline-block;
+}
+
 .input-section {
     background: white;
     border-radius: 15px;
@@ -331,7 +341,7 @@ body {
 
     .data-table th,
     .data-table td {
-        padding: 8px 6px; /* मोबाइल के लिए पैडिंग कम की गई */
+        padding: 8px 6px;
     }
 }
 
