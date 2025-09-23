@@ -14,7 +14,9 @@
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-table"></i> Excel Data Analysis Tool</h1>
-            <p class="rainbow-text">created by shivang</p>
+            <p>
+                <span class="rainbow-text">created by shivang</span>
+            </p>
         </div>
 
         <div class="input-section">
@@ -56,6 +58,9 @@ Jane	82%	18%	76	980.25"></textarea>
         <div id="controlsSection" class="controls-section">
             <div class="batch-actions" id="batchActions">
                 <span>Selected columns: <strong id="selectedCount">0</strong></span>
+                <button class="btn btn-danger" onclick="deleteSelectedColumns()">
+                    <i class="fas fa-trash"></i> Delete Selected
+                </button>
             </div>
 
             <div class="controls-grid">
