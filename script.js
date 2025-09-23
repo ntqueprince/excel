@@ -160,6 +160,54 @@ function getNumericValue(value) {
     return isNaN(num) ? null : num;
 }
 
+// Apply auto-coloring
+function applyCellColoring(value, type) {
+    const numValue = getNumericValue(value);
+    if (numValue === null) return '';
+
+    if (type === 'percentage') {
+        if (numValue >= 95) return 'cell-dark-green';
+        if (numValue >= 90) return 'cell-light-green';
+        if (numValue >= 80) return 'cell-yellow';
+        if (numValue >= 70) return 'cell-orange';
+        if (numValue >= 50) return 'cell-light-red';
+        if (numValue >= 30) return 'cell-red';
+        return 'cell-dark-red';
+    } else if (type === 'numeric') {
+        // Find the original column name based on a sample value from the current row
+        const rowKeys = Object.keys(currentData[0]);
+        let originalColumn;
+        for (const key of rowKeys) {
+            const sampleValue = currentData[0][key];
+            if (getNumericValue(sampleValue) === numValue) {
+                originalColumn = key;
+                break;
+            }
+        }
+        
+        if (!originalColumn) return '';
+
+        const allValues = originalData.map(row => getNumericValue(row[originalColumn])).filter(val => val !== null);
+        if (allValues.length === 0) return '';
+        
+        const min = Math.min(...allValues);
+        const max = Math.max(...allValues);
+        const range = max - min;
+        
+        if (range === 0) return 'cell-dark-green';
+        
+        const percentile = (numValue - min) / range;
+        
+        if (percentile >= 0.9) return 'cell-dark-green';
+        if (percentile >= 0.75) return 'cell-light-green';
+        if (percentile >= 0.5) return 'cell-yellow';
+        if (percentile >= 0.25) return 'cell-orange';
+        return 'cell-light-red';
+    }
+    
+    return '';
+}
+
 // Function to capture the table and copy it to the clipboard
 function captureTable() {
     const tableContainer = document.getElementById('tableContainer');
@@ -211,10 +259,14 @@ function captureTable() {
     }, 200); // Increased delay for better rendering
 }
 
-
 // Render table
 function renderTable() {
-    if (currentData.length === 0) return;
+    if (currentData.length === 0) {
+        document.getElementById('tableHead').innerHTML = '';
+        document.getElementById('tableBody').innerHTML = '';
+        updateStats();
+        return;
+    }
 
     const headers = Object.keys(currentData[0]);
     const thead = document.getElementById('tableHead');
@@ -227,16 +279,34 @@ function renderTable() {
     // Create header row
     const headerRow = document.createElement('tr');
     
+    // Add master checkbox for selecting all columns
+    const selectAllTh = document.createElement('th');
+    selectAllTh.className = 'checkbox-column';
+    const selectAllCheckbox = document.createElement('input');
+    selectAllCheckbox.type = 'checkbox';
+    selectAllCheckbox.id = 'selectAllColumns';
+    selectAllCheckbox.title = 'Select All Columns';
+    selectAllCheckbox.onchange = toggleSelectAll;
+    selectAllTh.appendChild(selectAllCheckbox);
+    headerRow.appendChild(selectAllTh);
+    
     headers.forEach(header => {
         const th = document.createElement('th');
         const headerDiv = document.createElement('div');
         headerDiv.className = 'column-header';
+
+        const columnCheckbox = document.createElement('input');
+        columnCheckbox.type = 'checkbox';
+        columnCheckbox.className = 'column-checkbox';
+        columnCheckbox.setAttribute('data-column-name', header);
+        columnCheckbox.onchange = updateSelectedCount;
+        
+        const headerText = document.createElement('span');
+        headerText.textContent = header;
         
         const columnNameGroup = document.createElement('div');
         columnNameGroup.className = 'column-name-group';
-
-        const headerText = document.createElement('span');
-        headerText.textContent = header;
+        columnNameGroup.appendChild(columnCheckbox);
         columnNameGroup.appendChild(headerText);
 
         // Sort button (only for numeric/percentage columns)
@@ -249,18 +319,6 @@ function renderTable() {
         }
         
         headerDiv.appendChild(columnNameGroup);
-        
-        const actions = document.createElement('div');
-        actions.className = 'column-actions';
-        
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'column-delete';
-        deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
-        deleteBtn.onclick = () => deleteColumn(header);
-        actions.appendChild(deleteBtn);
-
-        headerDiv.appendChild(actions);
         th.appendChild(headerDiv);
         headerRow.appendChild(th);
     });
@@ -270,6 +328,10 @@ function renderTable() {
     // Create data rows
     currentData.forEach(row => {
         const tr = document.createElement('tr');
+        
+        // Add a blank cell for the checkbox column in the body
+        const tdCheckbox = document.createElement('td');
+        tr.appendChild(tdCheckbox);
         
         headers.forEach(header => {
             const td = document.createElement('td');
@@ -286,6 +348,12 @@ function renderTable() {
             } else {
                 td.textContent = value;
             }
+
+            // Apply auto-coloring
+            const colorClass = applyCellColoring(value, columnTypes[header]);
+            if (colorClass) {
+                td.className = colorClass;
+            }
             
             tr.appendChild(td);
         });
@@ -294,18 +362,52 @@ function renderTable() {
     });
 
     updateStats();
+    updateSelectedCount(); // Initial update
 }
 
-// Column deletion
-function deleteColumn(columnName) {
-    if (confirm(`Are you sure you want to delete the "${columnName}" column?`)) {
+function toggleSelectAll() {
+    const isChecked = document.getElementById('selectAllColumns').checked;
+    document.querySelectorAll('.column-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkedCount = document.querySelectorAll('.column-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = checkedCount;
+    
+    // Enable/disable the delete button
+    const deleteButton = document.querySelector('.btn-danger');
+    if (checkedCount > 0) {
+        deleteButton.style.display = 'inline-flex';
+    } else {
+        deleteButton.style.display = 'none';
+    }
+}
+
+function deleteSelectedColumns() {
+    const selectedCheckboxes = document.querySelectorAll('.column-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('Please select at least one column to delete.');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} columns?`)) {
+        const columnsToDelete = Array.from(selectedCheckboxes).map(checkbox => checkbox.getAttribute('data-column-name'));
+        
         currentData = currentData.map(row => {
             const newRow = { ...row };
-            delete newRow[columnName];
+            columnsToDelete.forEach(colName => {
+                delete newRow[colName];
+            });
             return newRow;
         });
+
+        columnsToDelete.forEach(colName => {
+            delete columnTypes[colName];
+        });
         
-        delete columnTypes[columnName];
         renderTable();
     }
 }
