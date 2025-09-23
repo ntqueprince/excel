@@ -34,14 +34,30 @@ body {
     opacity: 0.9;
 }
 
+/* New CSS for the rainbow text */
 .rainbow-text {
-    background-image: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: linear-gradient(
+        to right,
+        #ff0000,
+        #ff7f00,
+        #ffff00,
+        #00ff00,
+        #0000ff,
+        #4b0082,
+        #8b00ff
+    );
+    background-size: 200% 100%;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-weight: 700;
-    font-size: 1.5rem; /* Increased font size */
-    margin-top: -20px; /* Adjusted to bring it closer to the main heading */
-    display: inline-block;
+    animation: rainbow-animation 6s linear infinite;
+}
+
+@keyframes rainbow-animation {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
 }
 
 .input-section {
@@ -315,6 +331,44 @@ body {
 
 .sort-button.active {
     color: #667eea;
+}
+
+.checkbox-column {
+    width: 40px;
+}
+
+.checkbox-column input[type="checkbox"] {
+    cursor: pointer;
+}
+
+/* Auto-coloring styles */
+.cell-dark-green {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+.cell-light-green {
+    background-color: #f0fdf4;
+    color: #4ade80;
+}
+.cell-yellow {
+    background-color: #fefce8;
+    color: #ca8a04;
+}
+.cell-orange {
+    background-color: #fff7ed;
+    color: #ea580c;
+}
+.cell-light-red {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+.cell-red {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+.cell-dark-red {
+    background-color: #fecaca;
+    color: #b91c1c;
 }
 
 /* Responsive design */
