@@ -107,11 +107,17 @@ function parseAndDisplayData(rawData) {
     const rows = rawData.slice(1);
 
     // Determine column types
-    columnTypes = {};
     headers.forEach((header, index) => {
-        const sampleValues = rows.slice(0, 10).map(row => row[index]).filter(val => val != null && val !== '');
+    const sampleValues = rows.slice(0, 10).map(row => row[index]).filter(val => val != null && val !== '');
+
+    // ✅ अगर header में % या 'csat' लिखा है तो उसे forcefully percentage column मान लो
+    if (header.toLowerCase().includes('%') || header.toLowerCase().includes('csat')) {
+        columnTypes[header] = 'percentage';
+    } else {
         columnTypes[header] = determineColumnType(sampleValues);
-    });
+    }
+});
+
 
     // Convert data to objects
     originalData = rows.map(row => {
@@ -173,6 +179,7 @@ function applyCellColoring(value, type) {
     const numValue = getNumericValue(value);
     if (numValue === null) return '';
 
+    // ✅ अब सिर्फ percentage columns पर ही color लागू होगा
     if (type === 'percentage') {
         if (numValue >= 95) return 'cell-dark-green';
         if (numValue >= 90) return 'cell-light-green';
@@ -181,25 +188,9 @@ function applyCellColoring(value, type) {
         if (numValue >= 50) return 'cell-light-red';
         if (numValue >= 30) return 'cell-red';
         return 'cell-dark-red';
-    } else if (type === 'numeric') {
-        const allValues = originalData.map(row => getNumericValue(row['CSAT (%)'])).filter(val => val !== null);
-        if (allValues.length === 0) return '';
-        
-        const min = Math.min(...allValues);
-        const max = Math.max(...allValues);
-        const range = max - min;
-        
-        if (range === 0) return 'cell-dark-green';
-        
-        const percentile = (numValue - min) / range;
-        
-        if (percentile >= 0.9) return 'cell-dark-green';
-        if (percentile >= 0.75) return 'cell-light-green';
-        if (percentile >= 0.5) return 'cell-yellow';
-        if (percentile >= 0.25) return 'cell-orange';
-        return 'cell-light-red';
     }
 
+    // ✅ बाकी सब पर कोई color नहीं
     return '';
 }
 
