@@ -3,12 +3,13 @@ let originalData = [];
 let currentData = [];
 let columnTypes = {};
 let sortState = { column: null, direction: 'asc' };
+let activeFilters = {}; // To store active filters
 
 // Tab switching
 function switchTab(tabName) {
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-    
+
     document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
 }
@@ -42,7 +43,7 @@ function handleFileUpload(e) {
 // File processing
 function processFile(file) {
     showLoading();
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
@@ -51,7 +52,7 @@ function processFile(file) {
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            
+
             if (jsonData.length > 0) {
                 parseAndDisplayData(jsonData);
             } else {
@@ -70,21 +71,21 @@ function processFile(file) {
 function processData() {
     const textarea = document.getElementById('pasteArea');
     const text = textarea.value.trim();
-    
+
     if (!text) {
         alert('Please paste some data first.');
         return;
     }
 
     showLoading();
-    
+
     try {
         const lines = text.split('\n').filter(line => line.trim());
         const data = lines.map(line => {
             // Try tab-separated first, then comma-separated
             return line.includes('\t') ? line.split('\t') : line.split(',');
         });
-        
+
         parseAndDisplayData(data);
     } catch (error) {
         alert('Error parsing data: ' + error.message);
@@ -120,7 +121,7 @@ function parseAndDisplayData(rawData) {
     currentData = [...originalData];
     renderTable();
     updateStats();
-    
+
     document.getElementById('controlsSection').style.display = 'block';
     document.getElementById('tableContainer').style.display = 'block';
 }
@@ -128,10 +129,10 @@ function parseAndDisplayData(rawData) {
 // Determine column type (numeric, percentage, or text)
 function determineColumnType(values) {
     if (values.length === 0) return 'text';
-    
+
     let numericCount = 0;
     let percentageCount = 0;
-    
+
     values.forEach(value => {
         const strValue = String(value).trim();
         if (strValue.endsWith('%')) {
@@ -140,7 +141,7 @@ function determineColumnType(values) {
             numericCount++;
         }
     });
-    
+
     const total = values.length;
     if (percentageCount / total > 0.5) return 'percentage';
     if (numericCount / total > 0.5) return 'numeric';
@@ -150,12 +151,12 @@ function determineColumnType(values) {
 // Get numeric value from cell
 function getNumericValue(value) {
     if (value == null || value === '') return null;
-    
+
     const strValue = String(value).trim();
     if (strValue.endsWith('%')) {
         return parseFloat(strValue.slice(0, -1));
     }
-    
+
     const num = parseFloat(strValue);
     return isNaN(num) ? null : num;
 }
@@ -174,20 +175,7 @@ function applyCellColoring(value, type) {
         if (numValue >= 30) return 'cell-red';
         return 'cell-dark-red';
     } else if (type === 'numeric') {
-        // Find the original column name based on a sample value from the current row
-        const rowKeys = Object.keys(currentData[0]);
-        let originalColumn;
-        for (const key of rowKeys) {
-            const sampleValue = currentData[0][key];
-            if (getNumericValue(sampleValue) === numValue) {
-                originalColumn = key;
-                break;
-            }
-        }
-        
-        if (!originalColumn) return '';
-
-        const allValues = originalData.map(row => getNumericValue(row[originalColumn])).filter(val => val !== null);
+        const allValues = originalData.map(row => getNumericValue(row['CSAT (%)'])).filter(val => val !== null);
         if (allValues.length === 0) return '';
         
         const min = Math.min(...allValues);
@@ -204,7 +192,7 @@ function applyCellColoring(value, type) {
         if (percentile >= 0.25) return 'cell-orange';
         return 'cell-light-red';
     }
-    
+
     return '';
 }
 
@@ -216,28 +204,23 @@ function captureTable() {
 
     showLoading();
 
-    // Temporarily increase the max-height to ensure all 80 rows are visible
-    const rowHeight = 35; // approximate height of one table row
+    const rowHeight = 35;
     const desiredHeight = 80 * rowHeight;
     tableWrapper.style.maxHeight = `${desiredHeight}px`;
-    tableWrapper.style.overflow = 'hidden'; // Hide the scrollbar
+    tableWrapper.style.overflow = 'hidden';
 
     setTimeout(() => {
         html2canvas(tableContainer, {
             useCORS: true,
             logging: false,
-            scale: 2 // Improved scale for better resolution
+            scale: 2
         }).then(canvas => {
-            // Restore the original height and overflow
             tableWrapper.style.maxHeight = originalMaxHeight;
             tableWrapper.style.overflow = '';
 
-            // Convert canvas to a blob
             canvas.toBlob(blob => {
-                // Create a new ClipboardItem
                 const item = new ClipboardItem({'image/png': blob});
                 
-                // Write the item to the clipboard
                 navigator.clipboard.write([item]).then(() => {
                     alert('Table image copied to clipboard! You can now paste it.');
                     hideLoading();
@@ -248,7 +231,6 @@ function captureTable() {
                 });
             });
         }).catch(err => {
-            // Restore on error
             tableWrapper.style.maxHeight = originalMaxHeight;
             tableWrapper.style.overflow = '';
 
@@ -256,7 +238,7 @@ function captureTable() {
             alert('Failed to capture table image. Please try again.');
             hideLoading();
         });
-    }, 200); // Increased delay for better rendering
+    }, 200);
 }
 
 // Render table
@@ -272,14 +254,11 @@ function renderTable() {
     const thead = document.getElementById('tableHead');
     const tbody = document.getElementById('tableBody');
 
-    // Clear existing content
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
-    // Create header row
     const headerRow = document.createElement('tr');
     
-    // Add master checkbox for selecting all columns
     const selectAllColumnsTh = document.createElement('th');
     selectAllColumnsTh.className = 'checkbox-column';
     const selectAllColumnsCheckbox = document.createElement('input');
@@ -309,7 +288,6 @@ function renderTable() {
         columnNameGroup.appendChild(columnCheckbox);
         columnNameGroup.appendChild(headerText);
 
-        // Sort button for all columns
         const sortBtn = document.createElement('button');
         sortBtn.className = 'sort-button';
         sortBtn.innerHTML = '<i class="fas fa-sort"></i>';
@@ -317,17 +295,24 @@ function renderTable() {
         columnNameGroup.appendChild(sortBtn);
         
         headerDiv.appendChild(columnNameGroup);
+        
+        if (columnTypes[header] === 'text') {
+            const filterButton = document.createElement('button');
+            filterButton.className = 'filter-button';
+            filterButton.innerHTML = '<i class="fas fa-filter"></i>';
+            filterButton.onclick = (e) => toggleFilterMenu(e, header);
+            headerDiv.appendChild(filterButton);
+        }
+
         th.appendChild(headerDiv);
         headerRow.appendChild(th);
     });
 
     thead.appendChild(headerRow);
 
-    // Create data rows
     currentData.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
         
-        // Add a checkbox cell for each row
         const tdCheckbox = document.createElement('td');
         tdCheckbox.className = 'row-checkbox-cell';
         const rowCheckbox = document.createElement('input');
@@ -342,7 +327,6 @@ function renderTable() {
             const td = document.createElement('td');
             const value = row[header];
             
-            // Format numeric values
             if (columnTypes[header] === 'numeric' || columnTypes[header] === 'percentage') {
                 const numericValue = getNumericValue(value);
                 if (numericValue !== null) {
@@ -350,7 +334,6 @@ function renderTable() {
                     if (originalStringValue.includes('.') || originalStringValue.endsWith('%')) {
                         td.textContent = numericValue.toFixed(1) + (columnTypes[header] === 'percentage' ? '%' : '');
                     } else {
-                        // Display integer value without .0
                         td.textContent = numericValue.toString() + (columnTypes[header] === 'percentage' ? '%' : '');
                     }
                 } else {
@@ -360,7 +343,6 @@ function renderTable() {
                 td.textContent = value;
             }
 
-            // Apply auto-coloring
             const colorClass = applyCellColoring(value, columnTypes[header]);
             if (colorClass) {
                 td.className = colorClass;
@@ -373,8 +355,148 @@ function renderTable() {
     });
 
     updateStats();
-    updateSelectedColumnCount(); // Initial update for columns
-    updateSelectedRowCount(); // Initial update for rows
+    updateSelectedColumnCount();
+    updateSelectedRowCount();
+    updateSortIndicators();
+}
+
+// UPDATED: Toggle filter menu
+function toggleFilterMenu(e, columnName) {
+    e.stopPropagation();
+
+    // Hide all other open filter menus
+    document.querySelectorAll('.filter-menu.show').forEach(menu => {
+        if (menu.id !== `filter-menu-${columnName}`) {
+            menu.classList.remove('show');
+        }
+    });
+
+    let filterMenu = document.getElementById(`filter-menu-${columnName}`);
+    if (!filterMenu) {
+        filterMenu = document.createElement('div');
+        filterMenu.className = 'filter-menu';
+        filterMenu.id = `filter-menu-${columnName}`;
+        e.target.parentNode.appendChild(filterMenu);
+        populateFilterMenu(columnName, filterMenu);
+    }
+    
+    // Stop propagation for the menu itself
+    filterMenu.onclick = (event) => event.stopPropagation();
+    
+    filterMenu.classList.toggle('show');
+
+    // Add a global click listener to hide the menu when clicking outside
+    document.addEventListener('click', function closeMenu(event) {
+        if (!filterMenu.contains(event.target) && !e.target.contains(event.target)) {
+            filterMenu.classList.remove('show');
+            document.removeEventListener('click', closeMenu);
+        }
+    });
+}
+
+// NEW: Populate filter menu with unique values
+function populateFilterMenu(columnName, menuElement) {
+    menuElement.innerHTML = '';
+    const uniqueValues = [...new Set(originalData.map(row => row[columnName]))].filter(v => v !== null && v !== '').sort();
+
+    // Add Select/Unselect All buttons
+    const controlsDiv = document.createElement('div');
+    controlsDiv.className = 'filter-controls';
+    
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.className = 'btn btn-filter-control';
+    selectAllBtn.onclick = () => {
+        menuElement.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    };
+
+    const unselectAllBtn = document.createElement('button');
+    unselectAllBtn.textContent = 'Unselect All';
+    unselectAllBtn.className = 'btn btn-filter-control';
+    unselectAllBtn.onclick = () => {
+        menuElement.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    };
+
+    controlsDiv.appendChild(selectAllBtn);
+    controlsDiv.appendChild(unselectAllBtn);
+    menuElement.appendChild(controlsDiv);
+
+    // Add search bar
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search...';
+    searchInput.className = 'filter-search';
+    searchInput.onkeyup = () => {
+        const filter = searchInput.value.toLowerCase();
+        menuElement.querySelectorAll('.filter-option').forEach(option => {
+            const value = option.textContent.toLowerCase();
+            if (value.includes(filter)) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    };
+    menuElement.appendChild(searchInput);
+
+    // Create a container for the checkboxes to allow for scrolling
+    const optionsContainer = document.createElement('div');
+    optionsContainer.className = 'filter-options-container';
+
+    const currentActiveValues = activeFilters[columnName] || null;
+
+    uniqueValues.forEach(value => {
+        const option = document.createElement('label');
+        option.className = 'filter-option';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = value;
+        checkbox.checked = currentActiveValues ? currentActiveValues.includes(value) : true;
+        
+        option.appendChild(checkbox);
+        option.appendChild(document.createTextNode(value));
+        optionsContainer.appendChild(option);
+    });
+    menuElement.appendChild(optionsContainer);
+    
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = 'Apply Filter';
+    applyBtn.className = 'filter-apply-btn';
+    applyBtn.onclick = () => {
+        applyFilters(columnName, menuElement);
+        menuElement.classList.remove('show');
+    };
+    menuElement.appendChild(applyBtn);
+}
+
+// NEW: Apply filters
+function applyFilters(columnName, menuElement) {
+    const selectedValues = [];
+    menuElement.querySelectorAll('.filter-options-container input[type="checkbox"]:checked').forEach(checkbox => {
+        selectedValues.push(checkbox.value);
+    });
+
+    if (selectedValues.length === 0) {
+        delete activeFilters[columnName];
+    } else {
+        activeFilters[columnName] = selectedValues;
+    }
+
+    currentData = originalData.filter(row => {
+        for (const col in activeFilters) {
+            if (!activeFilters[col].includes(row[col])) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    renderTable();
 }
 
 function toggleSelectAllColumns() {
@@ -400,6 +522,14 @@ function deleteSelectedColumns() {
     if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} columns?`)) {
         const columnsToDelete = Array.from(selectedCheckboxes).map(checkbox => checkbox.getAttribute('data-column-name'));
         
+        originalData = originalData.map(row => {
+            const newRow = { ...row };
+            columnsToDelete.forEach(colName => {
+                delete newRow[colName];
+            });
+            return newRow;
+        });
+
         currentData = currentData.map(row => {
             const newRow = { ...row };
             columnsToDelete.forEach(colName => {
@@ -411,12 +541,11 @@ function deleteSelectedColumns() {
         columnsToDelete.forEach(colName => {
             delete columnTypes[colName];
         });
-        
+
         renderTable();
     }
 }
 
-// NEW FUNCTION: Delete selected rows
 function deleteSelectedRows() {
     const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
     if (selectedCheckboxes.length === 0) {
@@ -427,14 +556,12 @@ function deleteSelectedRows() {
     if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} rows?`)) {
         const rowsToDeleteIndices = Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.getAttribute('data-row-index')));
         
-        // Filter out the rows to be deleted
         currentData = currentData.filter((row, index) => !rowsToDeleteIndices.includes(index));
         
         renderTable();
     }
 }
 
-// NEW FUNCTION: Update selected row count
 function updateSelectedRowCount() {
     const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
     document.getElementById('selectedRowCount').textContent = checkedCount;
@@ -466,7 +593,6 @@ function sortColumn(columnName) {
             const comparison = aNum - bNum;
             return sortState.direction === 'asc' ? comparison : -comparison;
         } else {
-            // Text sorting logic
             const comparison = String(aValue).localeCompare(String(bValue), undefined, { sensitivity: 'base' });
             return sortState.direction === 'asc' ? comparison : -comparison;
         }
