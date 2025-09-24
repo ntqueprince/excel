@@ -280,16 +280,16 @@ function renderTable() {
     const headerRow = document.createElement('tr');
     
     // Add master checkbox for selecting all columns
-    const selectAllTh = document.createElement('th');
-    selectAllTh.className = 'checkbox-column';
-    const selectAllCheckbox = document.createElement('input');
-    selectAllCheckbox.type = 'checkbox';
-    selectAllCheckbox.id = 'selectAllColumns';
-    selectAllCheckbox.title = 'Select All Columns';
-    selectAllCheckbox.onchange = toggleSelectAll;
-    selectAllTh.appendChild(selectAllCheckbox);
-    headerRow.appendChild(selectAllTh);
-    
+    const selectAllColumnsTh = document.createElement('th');
+    selectAllColumnsTh.className = 'checkbox-column';
+    const selectAllColumnsCheckbox = document.createElement('input');
+    selectAllColumnsCheckbox.type = 'checkbox';
+    selectAllColumnsCheckbox.id = 'selectAllColumns';
+    selectAllColumnsCheckbox.title = 'Select All Columns';
+    selectAllColumnsCheckbox.onchange = toggleSelectAllColumns;
+    selectAllColumnsTh.appendChild(selectAllColumnsCheckbox);
+    headerRow.appendChild(selectAllColumnsTh);
+
     headers.forEach(header => {
         const th = document.createElement('th');
         const headerDiv = document.createElement('div');
@@ -299,7 +299,7 @@ function renderTable() {
         columnCheckbox.type = 'checkbox';
         columnCheckbox.className = 'column-checkbox';
         columnCheckbox.setAttribute('data-column-name', header);
-        columnCheckbox.onchange = updateSelectedCount;
+        columnCheckbox.onchange = updateSelectedColumnCount;
         
         const headerText = document.createElement('span');
         headerText.textContent = header;
@@ -324,11 +324,18 @@ function renderTable() {
     thead.appendChild(headerRow);
 
     // Create data rows
-    currentData.forEach(row => {
+    currentData.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
         
-        // Add a blank cell for the checkbox column in the body
+        // Add a checkbox cell for each row
         const tdCheckbox = document.createElement('td');
+        tdCheckbox.className = 'row-checkbox-cell';
+        const rowCheckbox = document.createElement('input');
+        rowCheckbox.type = 'checkbox';
+        rowCheckbox.className = 'row-checkbox';
+        rowCheckbox.setAttribute('data-row-index', rowIndex);
+        rowCheckbox.onchange = updateSelectedRowCount;
+        tdCheckbox.appendChild(rowCheckbox);
         tr.appendChild(tdCheckbox);
         
         headers.forEach(header => {
@@ -366,28 +373,21 @@ function renderTable() {
     });
 
     updateStats();
-    updateSelectedCount(); // Initial update
+    updateSelectedColumnCount(); // Initial update for columns
+    updateSelectedRowCount(); // Initial update for rows
 }
 
-function toggleSelectAll() {
+function toggleSelectAllColumns() {
     const isChecked = document.getElementById('selectAllColumns').checked;
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
         checkbox.checked = isChecked;
     });
-    updateSelectedCount();
+    updateSelectedColumnCount();
 }
 
-function updateSelectedCount() {
+function updateSelectedColumnCount() {
     const checkedCount = document.querySelectorAll('.column-checkbox:checked').length;
-    document.getElementById('selectedCount').textContent = checkedCount;
-    
-    // Enable/disable the delete button
-    const deleteButton = document.querySelector('.btn-danger');
-    if (checkedCount > 0) {
-        deleteButton.style.display = 'inline-flex';
-    } else {
-        deleteButton.style.display = 'none';
-    }
+    document.getElementById('selectedColumnCount').textContent = checkedCount;
 }
 
 function deleteSelectedColumns() {
@@ -414,6 +414,30 @@ function deleteSelectedColumns() {
         
         renderTable();
     }
+}
+
+// NEW FUNCTION: Delete selected rows
+function deleteSelectedRows() {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('Please select at least one row to delete.');
+        return;
+    }
+
+    if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} rows?`)) {
+        const rowsToDeleteIndices = Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.getAttribute('data-row-index')));
+        
+        // Filter out the rows to be deleted
+        currentData = currentData.filter((row, index) => !rowsToDeleteIndices.includes(index));
+        
+        renderTable();
+    }
+}
+
+// NEW FUNCTION: Update selected row count
+function updateSelectedRowCount() {
+    const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+    document.getElementById('selectedRowCount').textContent = checkedCount;
 }
 
 // Sorting
