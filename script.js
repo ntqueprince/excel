@@ -3,7 +3,11 @@ let originalData = [];
 let currentData = [];
 let columnTypes = {};
 let sortState = { column: null, direction: 'asc' };
-let activeFilters = {}; // To store active filters
+let activeFilters = {};
+
+// Pagination variables
+const rowsPerPage = 100;
+let currentPage = 1;
 
 // Tab switching
 function switchTab(tabName) {
@@ -119,11 +123,14 @@ function parseAndDisplayData(rawData) {
     });
 
     currentData = [...originalData];
+    currentPage = 1;
     renderTable();
     updateStats();
+    renderPaginationControls();
 
     document.getElementById('controlsSection').style.display = 'block';
     document.getElementById('tableContainer').style.display = 'block';
+    document.getElementById('paginationControls').style.display = 'flex';
 }
 
 // Determine column type (numeric, percentage, or text)
@@ -241,7 +248,7 @@ function captureTable() {
     }, 200);
 }
 
-// Render table
+// Render table (with pagination)
 function renderTable() {
     if (currentData.length === 0) {
         document.getElementById('tableHead').innerHTML = '';
@@ -310,7 +317,11 @@ function renderTable() {
 
     thead.appendChild(headerRow);
 
-    currentData.forEach((row, rowIndex) => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedData = currentData.slice(startIndex, endIndex);
+
+    paginatedData.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
         
         const tdCheckbox = document.createElement('td');
@@ -318,7 +329,7 @@ function renderTable() {
         const rowCheckbox = document.createElement('input');
         rowCheckbox.type = 'checkbox';
         rowCheckbox.className = 'row-checkbox';
-        rowCheckbox.setAttribute('data-row-index', rowIndex);
+        rowCheckbox.setAttribute('data-row-index', startIndex + rowIndex); // Use global index
         rowCheckbox.onchange = updateSelectedRowCount;
         tdCheckbox.appendChild(rowCheckbox);
         tr.appendChild(tdCheckbox);
@@ -360,11 +371,10 @@ function renderTable() {
     updateSortIndicators();
 }
 
-// UPDATED: Toggle filter menu
+// Toggle filter menu
 function toggleFilterMenu(e, columnName) {
     e.stopPropagation();
 
-    // Hide all other open filter menus
     document.querySelectorAll('.filter-menu.show').forEach(menu => {
         if (menu.id !== `filter-menu-${columnName}`) {
             menu.classList.remove('show');
@@ -380,12 +390,10 @@ function toggleFilterMenu(e, columnName) {
         populateFilterMenu(columnName, filterMenu);
     }
     
-    // Stop propagation for the menu itself
     filterMenu.onclick = (event) => event.stopPropagation();
     
     filterMenu.classList.toggle('show');
 
-    // Add a global click listener to hide the menu when clicking outside
     document.addEventListener('click', function closeMenu(event) {
         if (!filterMenu.contains(event.target) && !e.target.contains(event.target)) {
             filterMenu.classList.remove('show');
@@ -394,7 +402,9 @@ function toggleFilterMenu(e, columnName) {
     });
 }
 
-// NEW: Populate filter menu with unique values
+// Populate filter menu with unique values
+// Populate filter menu with unique values
+// UPDATED: Populate filter menu with unique values
 function populateFilterMenu(columnName, menuElement) {
     menuElement.innerHTML = '';
     const uniqueValues = [...new Set(originalData.map(row => row[columnName]))].filter(v => v !== null && v !== '').sort();
@@ -425,30 +435,37 @@ function populateFilterMenu(columnName, menuElement) {
     controlsDiv.appendChild(unselectAllBtn);
     menuElement.appendChild(controlsDiv);
 
-    // Add search bar
+    // 🔥 Search bar
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search...';
     searchInput.className = 'filter-search';
+    menuElement.appendChild(searchInput);
+
+    // 🔥 Apply Filter button ko search ke niche rakha
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = 'Apply Filter';
+    applyBtn.className = 'filter-apply-btn';
+    applyBtn.onclick = () => {
+        applyFilters(columnName, menuElement);
+        menuElement.classList.remove('show');
+    };
+    menuElement.appendChild(applyBtn);
+
+    // Search logic
     searchInput.onkeyup = () => {
         const filter = searchInput.value.toLowerCase();
         menuElement.querySelectorAll('.filter-option').forEach(option => {
             const value = option.textContent.toLowerCase();
-            if (value.includes(filter)) {
-                option.style.display = '';
-            } else {
-                option.style.display = 'none';
-            }
+            option.style.display = value.includes(filter) ? '' : 'none';
         });
     };
-    menuElement.appendChild(searchInput);
 
-    // Create a container for the checkboxes to allow for scrolling
+    // Options container
     const optionsContainer = document.createElement('div');
     optionsContainer.className = 'filter-options-container';
 
     const currentActiveValues = activeFilters[columnName] || null;
-
     uniqueValues.forEach(value => {
         const option = document.createElement('label');
         option.className = 'filter-option';
@@ -463,18 +480,19 @@ function populateFilterMenu(columnName, menuElement) {
         optionsContainer.appendChild(option);
     });
     menuElement.appendChild(optionsContainer);
-    
+}
+
+    // Always show Apply Filter button
     const applyBtn = document.createElement('button');
     applyBtn.textContent = 'Apply Filter';
     applyBtn.className = 'filter-apply-btn';
+    applyBtn.style.marginTop = '8px';
     applyBtn.onclick = () => {
         applyFilters(columnName, menuElement);
         menuElement.classList.remove('show');
     };
     menuElement.appendChild(applyBtn);
-}
-
-// NEW: Apply filters
+// Apply filters
 function applyFilters(columnName, menuElement) {
     const selectedValues = [];
     menuElement.querySelectorAll('.filter-options-container input[type="checkbox"]:checked').forEach(checkbox => {
@@ -496,7 +514,9 @@ function applyFilters(columnName, menuElement) {
         return true;
     });
 
+    currentPage = 1;
     renderTable();
+    renderPaginationControls();
 }
 
 function toggleSelectAllColumns() {
@@ -543,6 +563,7 @@ function deleteSelectedColumns() {
         });
 
         renderTable();
+        renderPaginationControls();
     }
 }
 
@@ -556,9 +577,26 @@ function deleteSelectedRows() {
     if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} rows?`)) {
         const rowsToDeleteIndices = Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.getAttribute('data-row-index')));
         
-        currentData = currentData.filter((row, index) => !rowsToDeleteIndices.includes(index));
-        
+        originalData = originalData.filter((row, index) => !rowsToDeleteIndices.includes(index));
+
+        currentData = originalData.filter(row => {
+            for (const col in activeFilters) {
+                if (!activeFilters[col].includes(row[col])) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        const totalPages = Math.ceil(currentData.length / rowsPerPage);
+        if (currentPage > totalPages && totalPages > 0) {
+            currentPage = totalPages;
+        } else if (totalPages === 0) {
+            currentPage = 1;
+        }
+
         renderTable();
+        renderPaginationControls();
     }
 }
 
@@ -615,6 +653,40 @@ function updateSortIndicators() {
             const icon = sortState.direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
             activeButton.innerHTML = `<i class="fas ${icon}"></i>`;
         }
+    }
+}
+
+// Pagination Logic
+function renderPaginationControls() {
+    const totalPages = Math.ceil(currentData.length / rowsPerPage);
+    const pageNumbersDiv = document.getElementById('pageNumbers');
+    pageNumbersDiv.innerHTML = '';
+    
+    const maxPagesToShow = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+    if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.className = `btn btn-secondary page-number ${i === currentPage ? 'active' : ''}`;
+        pageBtn.onclick = () => changePage(i);
+        pageNumbersDiv.appendChild(pageBtn);
+    }
+
+    document.getElementById('prevPageBtn').disabled = currentPage === 1;
+    document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+}
+
+function changePage(pageNumber) {
+    if (pageNumber >= 1 && pageNumber <= Math.ceil(currentData.length / rowsPerPage)) {
+        currentPage = pageNumber;
+        renderTable();
+        renderPaginationControls();
     }
 }
 
