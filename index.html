@@ -30,38 +30,45 @@
             </div>
 
             <div id="upload-tab" class="tab-content active">
-                <div class="drop-area"
+                <div 
+                    class="drop-zone"
                     ondragover="handleDragOver(event)"
                     ondragleave="handleDragLeave(event)"
-                    ondrop="handleDrop(event)">
+                    ondrop="handleDrop(event)"
+                    onclick="document.getElementById('fileInput').click()"
+                >
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag & Drop your file here or</p>
-                    <input type="file" id="fileInput" onchange="handleFileUpload(event)" accept=".xlsx, .xls, .csv">
-                    <label for="fileInput" class="btn btn-primary">Choose a file</label>
+                    <p>Drag & Drop your Excel/CSV file here</p>
+                    <p class="or-text">or click to browse</p>
+                    <input type="file" id="fileInput" accept=".csv, .xlsx" onchange="handleFileUpload(event)">
                 </div>
             </div>
 
             <div id="paste-tab" class="tab-content">
-                <textarea id="pasteArea" placeholder="Paste your data here (e.g., from Excel)"></textarea>
-                <button class="btn btn-primary" onclick="processData()">Process Data</button>
+                <textarea id="pasteArea" placeholder="Paste your data here (from Excel or CSV)"></textarea>
+                <button class="btn btn-primary" onclick="processData()">
+                    <i class="fas fa-cogs"></i> Process Data
+                </button>
             </div>
         </div>
 
-        <div class="controls-section" id="controlsSection">
+        <div class="controls-section" id="controlsSection" style="display: none;">
             <div class="controls-grid">
                 <div class="control-group">
-                    <strong>Columns: </strong>
-                    <span id="selectedColumnCount">0</span> selected
                     <button class="btn btn-danger" onclick="deleteSelectedColumns()">
-                        <i class="fas fa-trash"></i> Delete Selected
+                        <i class="fas fa-trash"></i> Delete Selected Columns
                     </button>
+                    <div class="stats">
+                        Selected Columns: <strong id="selectedColumnCount">0</strong>
+                    </div>
                 </div>
                 <div class="control-group">
-                    <strong>Rows: </strong>
-                    <span id="selectedRowCount">0</span> selected
                     <button class="btn btn-danger" onclick="deleteSelectedRows()">
-                        <i class="fas fa-trash"></i> Delete Selected
+                        <i class="fas fa-trash"></i></i> Delete Selected Rows
                     </button>
+                    <div class="stats">
+                        Selected Rows: <strong id="selectedRowCount">0</strong>
+                    </div>
                 </div>
             </div>
 
@@ -84,7 +91,7 @@
             <div>Processing your data...</div>
         </div>
 
-        <div id="tableContainer" class="table-container">
+        <div id="tableContainer" class="table-container" style="display: none;">
             <div class="stats">
                 <div>
                     Rows: <strong id="rowCount">0</strong> | 
@@ -97,6 +104,12 @@
                     <tbody id="tableBody"></tbody>
                 </table>
             </div>
+        </div>
+
+        <div id="paginationControls" class="pagination-controls" style="display: none;">
+            <button class="btn btn-secondary" id="prevPageBtn" onclick="changePage(currentPage - 1)">Previous</button>
+            <div id="pageNumbers"></div>
+            <button class="btn btn-secondary" id="nextPageBtn" onclick="changePage(currentPage + 1)">Next</button>
         </div>
     </div>
 
