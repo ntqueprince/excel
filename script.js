@@ -309,14 +309,12 @@ function renderTable() {
         columnNameGroup.appendChild(columnCheckbox);
         columnNameGroup.appendChild(headerText);
 
-        // Sort button (only for numeric/percentage columns)
-        if (columnTypes[header] === 'numeric' || columnTypes[header] === 'percentage') {
-            const sortBtn = document.createElement('button');
-            sortBtn.className = 'sort-button';
-            sortBtn.innerHTML = '<i class="fas fa-sort"></i>';
-            sortBtn.onclick = () => sortColumn(header);
-            columnNameGroup.appendChild(sortBtn);
-        }
+        // Sort button for all columns
+        const sortBtn = document.createElement('button');
+        sortBtn.className = 'sort-button';
+        sortBtn.innerHTML = '<i class="fas fa-sort"></i>';
+        sortBtn.onclick = () => sortColumn(header);
+        columnNameGroup.appendChild(sortBtn);
         
         headerDiv.appendChild(columnNameGroup);
         th.appendChild(headerDiv);
@@ -337,11 +335,17 @@ function renderTable() {
             const td = document.createElement('td');
             const value = row[header];
             
-            // Format numeric values to one decimal place
+            // Format numeric values
             if (columnTypes[header] === 'numeric' || columnTypes[header] === 'percentage') {
                 const numericValue = getNumericValue(value);
                 if (numericValue !== null) {
-                    td.textContent = numericValue.toFixed(1) + (columnTypes[header] === 'percentage' ? '%' : '');
+                    const originalStringValue = String(value).trim();
+                    if (originalStringValue.includes('.') || originalStringValue.endsWith('%')) {
+                        td.textContent = numericValue.toFixed(1) + (columnTypes[header] === 'percentage' ? '%' : '');
+                    } else {
+                        // Display integer value without .0
+                        td.textContent = numericValue.toString() + (columnTypes[header] === 'percentage' ? '%' : '');
+                    }
                 } else {
                     td.textContent = value;
                 }
@@ -422,15 +426,26 @@ function sortColumn(columnName) {
     }
 
     currentData.sort((a, b) => {
-        const aValue = getNumericValue(a[columnName]);
-        const bValue = getNumericValue(b[columnName]);
-        
-        if (aValue === null && bValue === null) return 0;
-        if (aValue === null) return 1;
-        if (bValue === null) return -1;
-        
-        const comparison = aValue - bValue;
-        return sortState.direction === 'asc' ? comparison : -comparison;
+        const aValue = a[columnName];
+        const bValue = b[columnName];
+
+        const type = columnTypes[columnName];
+
+        if (type === 'numeric' || type === 'percentage') {
+            const aNum = getNumericValue(aValue);
+            const bNum = getNumericValue(bValue);
+
+            if (aNum === null && bNum === null) return 0;
+            if (aNum === null) return 1;
+            if (bNum === null) return -1;
+            
+            const comparison = aNum - bNum;
+            return sortState.direction === 'asc' ? comparison : -comparison;
+        } else {
+            // Text sorting logic
+            const comparison = String(aValue).localeCompare(String(bValue), undefined, { sensitivity: 'base' });
+            return sortState.direction === 'asc' ? comparison : -comparison;
+        }
     });
 
     renderTable();
