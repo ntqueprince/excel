@@ -248,11 +248,12 @@ body {
 
 .data-table th,
 .data-table td {
-    padding: 12px;
+    padding: 8px;           /* पहले 12px था → अब 30% कम */
     text-align: center;
     border-bottom: 1px solid #e5e7eb;
     transition: background-color 0.3s ease;
     white-space: nowrap;
+    font-size: 15px;        /* font थोड़ा बड़ा */
 }
 
 .data-table th {
@@ -410,29 +411,30 @@ body {
 /* Responsive design */
 @media (max-width: 768px) {
     .container {
-        padding: 10px;
+        padding: 8px;
     }
 
     .header h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
 
     .input-section {
-        padding: 20px;
+        padding: 15px;
     }
 
     .controls-grid {
         grid-template-columns: 1fr;
     }
 
+    /* ✅ Table text बड़ा कर दिया */
     .data-table {
-        font-size: 12px;
-    }
+    font-size: 14px;     /* font बड़ा */
+}
 
-    .data-table th,
-    .data-table td {
-        padding: 8px 6px;
-    }
+.data-table th,
+.data-table td {
+    padding: 4px;        /* ✅ सिर्फ 60% gap रखा */
+}
 }
 
 .loading {
