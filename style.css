@@ -257,15 +257,14 @@ body {
 }
 
 .data-table th {
-    background: #f8fafc;
+    background: linear-gradient(135deg, #667eea, #764ba2);  /* नीला से पर्पल gradient */
     font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
+    color: white;                     /* टेक्स्ट सफेद */
+    border-bottom: 2px solid #4c51bf; /* थोड़ी dark border */
     position: sticky;
     top: 0;
     z-index: 10;
 }
-
 .data-table tbody tr:hover {
     background: #f8fafc;
 }
@@ -498,4 +497,17 @@ body {
     color: white;
     font-weight: 600;
     border-color: #667eea;
+}
+/* ===== Fix for Sort & Filter icons in header ===== */
+.data-table th .dt-column-order,
+.data-table th .sort-button,
+.data-table th .filter-button {
+    color: #fff !important;     /* white icons */
+    opacity: 1 !important;      /* पूरी visibility */
+    font-size: 14px;            /* icon थोड़ा बड़ा */
+}
+
+.data-table th .sort-button:hover,
+.data-table th .filter-button:hover {
+    color: #ffd700 !important;  /* hover पर golden highlight */
 }
