@@ -260,7 +260,7 @@ body {
 .data-table th {
     background: #f8fafc;
     padding: 15px 12px;
-    text-align: left;
+    text-align: center; /* UPDATED: Aligns header text to the center */
     font-weight: 600;
     color: #374151;
     border-bottom: 2px solid #e5e7eb;
@@ -271,6 +271,7 @@ body {
 
 .data-table td {
     padding: 12px;
+    text-align: center; /* UPDATED: Aligns cell values to the center */
     border-bottom: 1px solid #e5e7eb;
     transition: background-color 0.3s ease;
 }
@@ -282,7 +283,7 @@ body {
 .column-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* UPDATED: Centers the header content (checkbox, text, sort) */
     gap: 8px;
 }
 
