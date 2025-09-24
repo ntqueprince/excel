@@ -30,37 +30,39 @@
             </div>
 
             <div id="upload-tab" class="tab-content active">
-                <div class="upload-area" onclick="document.getElementById('fileInput').click()" 
-                     ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
-                    <div class="upload-icon">
-                        <i class="fas fa-file-excel"></i>
-                    </div>
-                    <div class="upload-text">Click to upload or drag & drop your Excel file</div>
-                    <div class="upload-subtext">Supports .xlsx, .xls, and .csv files</div>
-                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+                <div class="drop-area"
+                    ondragover="handleDragOver(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event)">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & Drop your file here or</p>
+                    <input type="file" id="fileInput" onchange="handleFileUpload(event)" accept=".xlsx, .xls, .csv">
+                    <label for="fileInput" class="btn btn-primary">Choose a file</label>
                 </div>
             </div>
 
             <div id="paste-tab" class="tab-content">
-                <textarea id="pasteArea" class="paste-area" placeholder="Paste your Excel data here... 
-Each row should be on a new line, with columns separated by tabs or commas.
-
-Example:
-Name	CSAT	DSAT	Score	Amount
-John	95%	5%	87	1250.50
-Jane	82%	18%	76	980.25"></textarea>
-                <button class="btn btn-primary" onclick="processData()" style="margin-top: 15px;">
-                    <i class="fas fa-cogs"></i> Process Data
-                </button>
+                <textarea id="pasteArea" placeholder="Paste your data here (e.g., from Excel)"></textarea>
+                <button class="btn btn-primary" onclick="processData()">Process Data</button>
             </div>
         </div>
 
-        <div id="controlsSection" class="controls-section">
-            <div class="batch-actions" id="batchActions">
-                <span>Selected columns: <strong id="selectedCount">0</strong></span>
-                <button class="btn btn-danger" onclick="deleteSelectedColumns()">
-                    <i class="fas fa-trash"></i> Delete Selected
-                </button>
+        <div class="controls-section" id="controlsSection">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <strong>Columns: </strong>
+                    <span id="selectedColumnCount">0</span> selected
+                    <button class="btn btn-danger" onclick="deleteSelectedColumns()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                </div>
+                <div class="control-group">
+                    <strong>Rows: </strong>
+                    <span id="selectedRowCount">0</span> selected
+                    <button class="btn btn-danger" onclick="deleteSelectedRows()">
+                        <i class="fas fa-trash"></i> Delete Selected
+                    </button>
+                </div>
             </div>
 
             <div class="controls-grid">
