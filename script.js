@@ -430,14 +430,14 @@ function populateFilterMenu(columnName, menuElement) {
     menuElement.appendChild(searchInput);
 
     // 🔥 Apply Filter button ko search ke niche rakha
-    const applyBtn = document.createElement('button');
-    applyBtn.textContent = 'Apply Filter';
-    applyBtn.className = 'filter-apply-btn';
-    applyBtn.onclick = () => {
+    const applyBtnTop = document.createElement('button');
+    applyBtnTop.textContent = 'Apply Filter';
+    applyBtnTop.className = 'filter-apply-btn';
+    applyBtnTop.onclick = () => {
         applyFilters(columnName, menuElement);
         menuElement.classList.remove('show');
     };
-    menuElement.appendChild(applyBtn);
+    menuElement.appendChild(applyBtnTop);
 
     // Search logic
     searchInput.onkeyup = () => {
@@ -467,7 +467,6 @@ function populateFilterMenu(columnName, menuElement) {
         optionsContainer.appendChild(option);
     });
     menuElement.appendChild(optionsContainer);
-}
 
     // Always show Apply Filter button
     const applyBtn = document.createElement('button');
@@ -479,6 +478,8 @@ function populateFilterMenu(columnName, menuElement) {
         menuElement.classList.remove('show');
     };
     menuElement.appendChild(applyBtn);
+}
+
 // Apply filters
 function applyFilters(columnName, menuElement) {
     const selectedValues = [];
@@ -564,6 +565,16 @@ function deleteSelectedRows() {
     if (confirm(`Are you sure you want to delete the selected ${selectedCheckboxes.length} rows?`)) {
         const rowsToDeleteIndices = Array.from(selectedCheckboxes).map(checkbox => parseInt(checkbox.getAttribute('data-row-index')));
         
+        // ✅ Header Row Deletion Protection
+        // Prevent deleting table headers (handled separately)
+if (rowsToDeleteIndices.length > 0) {
+    const headers = Object.keys(currentData[0]);
+    if (headers.some(h => rowsToDeleteIndices.includes(h))) {
+        alert('Table header cannot be deleted.');
+        return;
+    }
+}
+
         originalData = originalData.filter((row, index) => !rowsToDeleteIndices.includes(index));
 
         currentData = originalData.filter(row => {
@@ -590,6 +601,74 @@ function deleteSelectedRows() {
 function updateSelectedRowCount() {
     const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
     document.getElementById('selectedRowCount').textContent = checkedCount;
+}
+
+// ✅ New function to set the selected row as the new header
+function setSelectedRowAsHeader() {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedCheckboxes.length !== 1) {
+        alert('Please select exactly one row to set as header.');
+        return;
+    }
+
+    const selectedIndex = parseInt(selectedCheckboxes[0].getAttribute('data-row-index'));
+
+    if (currentData.length === 1) {
+        alert('Cannot set the only remaining row as a header.');
+        return;
+    }
+
+    // ✅ nayi header row निकालो (currentData से)
+    const newHeaderRow = currentData[selectedIndex];
+
+    // purana headers को एक row बनाकर data me push कर दो
+    const oldHeaders = Object.keys(currentData[0]);
+    const oldHeaderRow = {};
+    oldHeaders.forEach((header, i) => {
+        oldHeaderRow[header] = header;
+    });
+
+    // The remaining data rows (excluding the selected one which becomes the header)
+    const remainingData = currentData.filter((_, index) => index !== selectedIndex);
+    
+    // The old header row is now the first data row in remainingData
+    remainingData.unshift(oldHeaderRow); 
+    
+    // Extract the new header names from the selected row
+    const newHeaders = Object.values(newHeaderRow).map(String);
+    
+    // Re-map all data rows (original data) to the new header structure
+    originalData = remainingData.map(row => {
+        const obj = {};
+        oldHeaders.forEach((oldHeader, i) => {
+            const newHeader = newHeaders[i] !== undefined ? newHeaders[i] : oldHeader; // Fallback if fewer new headers
+            obj[newHeader] = row[oldHeader];
+        });
+        return obj;
+    });
+
+    // currentData ko originalData se reset aur filters/sorts clear
+    currentData = [...originalData];
+    currentPage = 1;
+    activeFilters = {}; // Filters clear
+
+    // columnTypes reset karke fir se calculate karna
+    columnTypes = {};
+    const effectiveHeaders = Object.keys(currentData[0] || {});
+    
+    effectiveHeaders.forEach((header) => {
+        const sampleValues = currentData.slice(0, 10).map(row => row[header]).filter(v => v != null && v !== '');
+        
+        if (header.toLowerCase().includes('%') || header.toLowerCase().includes('csat')) {
+            columnTypes[header] = 'percentage';
+        } else {
+            columnTypes[header] = determineColumnType(sampleValues);
+        }
+    });
+
+    renderTable();
+    renderPaginationControls();
+    alert('Selected row has been set as new header!');
 }
 
 // Sorting
