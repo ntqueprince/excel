@@ -333,11 +333,7 @@ function renderTable() {
                 const numericValue = getNumericValue(value);
                 if (numericValue !== null) {
                     const originalStringValue = String(value).trim();
-                    if (originalStringValue.includes('.') || originalStringValue.endsWith('%')) {
-                        td.textContent = numericValue.toFixed(1) + (columnTypes[header] === 'percentage' ? '%' : '');
-                    } else {
-                        td.textContent = numericValue.toString() + (columnTypes[header] === 'percentage' ? '%' : '');
-                    }
+                    td.textContent = numericValue.toFixed(2) + (columnTypes[header] === 'percentage' ? '%' : '');
                 } else {
                     td.textContent = value;
                 }
