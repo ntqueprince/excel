@@ -332,11 +332,14 @@ function renderTable() {
             if (columnTypes[header] === 'numeric' || columnTypes[header] === 'percentage') {
                 const numericValue = getNumericValue(value);
                 if (numericValue !== null) {
-                    const originalStringValue = String(value).trim();
-                    td.textContent = numericValue.toFixed(2) + (columnTypes[header] === 'percentage' ? '%' : '');
-                } else {
-                    td.textContent = value;
-                }
+    if (columnTypes[header] === 'percentage') {
+        td.textContent = numericValue.toFixed(2) + '%';  // keep 2 decimals for %
+    } else {
+        td.textContent = Math.round(numericValue);        // remove decimals for normal numbers
+    }
+} else {
+    td.textContent = value;
+}
             } else {
                 td.textContent = value;
             }
